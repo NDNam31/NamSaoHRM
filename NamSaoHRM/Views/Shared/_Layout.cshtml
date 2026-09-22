@@ -1,0 +1,121 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+    string Active(string c, string? a = null) =>
+        string.Equals(controller, c, StringComparison.OrdinalIgnoreCase) &&
+        (a == null || string.Equals(action, a, StringComparison.OrdinalIgnoreCase)) ? "active" : "";
+    var hoTen = User.FindFirst("HoTen")?.Value ?? User.Identity?.Name;
+    var chucVu = User.FindFirst("ChucVu")?.Value;
+    var laAdmin = User.IsInRole(VaiTro.Admin);
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – NamSao HRM</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" />
+    <link rel="stylesheet" href="~/lib/bootstrap/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebar">
+        <div class="offcanvas-body">
+            <div class="sidebar-inner">
+                <div class="brand">
+                    <div class="brand-logo"><i class="bi bi-stars"></i></div>
+                    <div>
+                        <div class="brand-name">NamSao HRM</div>
+                        <div class="brand-sub">Quản lý nhân sự &amp; chấm công</div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white ms-auto d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar"></button>
+                </div>
+
+                <nav class="menu">
+                    @if (laAdmin)
+                    {
+                        <div class="menu-title">Tổng quan</div>
+                        <a class="menu-link @Active("Dashboard")" asp-controller="Dashboard" asp-action="Index"><i class="bi bi-speedometer2"></i> Bảng điều khiển</a>
+
+                        <div class="menu-title">Quản lý nhân sự</div>
+                        <a class="menu-link @Active("NhanVien")" asp-controller="NhanVien" asp-action="Index"><i class="bi bi-people"></i> Nhân viên</a>
+                        <a class="menu-link @Active("PhongBan")" asp-controller="PhongBan" asp-action="Index"><i class="bi bi-diagram-3"></i> Phòng ban &amp; Tài khoản</a>
+                    }
+                    <div class="menu-title">Chấm công &amp; Lương</div>
+                    <a class="menu-link @Active("ChamCong", "Index")" asp-controller="ChamCong" asp-action="Index"><i class="bi bi-fingerprint"></i> Chấm công hôm nay</a>
+                    <a class="menu-link @Active("ChamCong", "LichSu")" asp-controller="ChamCong" asp-action="LichSu"><i class="bi bi-calendar3"></i> Lịch sử chấm công</a>
+                    <a class="menu-link @Active("BangLuong")" asp-controller="BangLuong" asp-action="Index"><i class="bi bi-cash-stack"></i> @(laAdmin ? "Bảng lương" : "Bảng lương của tôi")</a>
+                </nav>
+
+                <div class="sidebar-footer">
+                    <i class="bi bi-building"></i> Công ty CP TMĐT Năm Sao
+                    <div class="small opacity-50">Phiên bản 1.0.0</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main">
+        <header class="topbar">
+            <button class="btn btn-light d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-label="Mở menu">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+            <div class="me-auto">
+                <h1 class="page-title">@ViewData["Title"]</h1>
+                @if (ViewData["Subtitle"] != null)
+                {
+                    <div class="page-sub">@ViewData["Subtitle"]</div>
+                }
+            </div>
+            <div class="d-none d-md-flex align-items-center text-muted small me-3">
+                <i class="bi bi-calendar-event me-1"></i> @UiHelper.Thu(DateTime.Today), @DateTime.Today.ToString("dd/MM/yyyy")
+            </div>
+            <div class="dropdown">
+                <button class="user-chip dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="avatar avatar-sm" style="background:@UiHelper.MauTheoTen(hoTen)">@UiHelper.ChuCaiDau(hoTen)</span>
+                    <span class="d-none d-sm-inline text-start">
+                        <span class="d-block fw-semibold lh-sm">@hoTen</span>
+                        <span class="d-block small text-muted lh-sm">@(laAdmin ? "Quản trị viên" : chucVu)</span>
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><span class="dropdown-item-text small text-muted">Đăng nhập: <b>@User.Identity?.Name</b></span></li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li>
+                        <form asp-controller="Account" asp-action="Logout" method="post">
+                            <button class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </header>
+
+        <main class="content">
+            @if (TempData["Success"] is string ok)
+            {
+                <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i> <div>@ok</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @if (TempData["Error"] is string err)
+            {
+                <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <div>@err</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+            @RenderBody()
+        </main>
+
+        <footer class="footer">© @DateTime.Today.Year Công ty Cổ phần Thương mại điện tử Năm Sao · NamSao HRM</footer>
+    </div>
+</div>
+
+<script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

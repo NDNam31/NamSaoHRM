@@ -1,0 +1,165 @@
+@model PhongBanTaiKhoanViewModel
+@{
+    ViewData["Title"] = "Phòng ban & Tài khoản";
+    ViewData["Subtitle"] = "Quản lý cơ cấu phòng ban và phân quyền người dùng";
+    var tabPB = Model.Tab == "phongban";
+}
+
+<div class="card">
+    <div class="card-header pb-0 border-0">
+        <ul class="nav nav-tabs-ns" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link @(tabPB ? "active" : "")" data-bs-toggle="tab" data-bs-target="#tabPhongBan" type="button" role="tab">
+                    <i class="bi bi-diagram-3 me-1"></i> Quản lý phòng ban <span class="badge badge-soft-primary ms-1">@Model.PhongBans.Count</span>
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link @(!tabPB ? "active" : "")" data-bs-toggle="tab" data-bs-target="#tabTaiKhoan" type="button" role="tab">
+                    <i class="bi bi-person-lock me-1"></i> Tài khoản &amp; phân quyền <span class="badge badge-soft-primary ms-1">@Model.TaiKhoans.Count</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="tab-content">
+        <!-- TAB 1: PHÒNG BAN -->
+        <div class="tab-pane fade @(tabPB ? "show active" : "")" id="tabPhongBan" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center px-3 py-3">
+                <div class="small text-muted">Không thể xóa phòng ban khi vẫn còn nhân viên trực thuộc.</div>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalPhongBan"
+                        data-id="" data-ten="" data-mota=""><i class="bi bi-plus-lg me-1"></i> Thêm phòng ban</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-ns">
+                    <thead>
+                    <tr><th>Mã</th><th>Tên phòng ban</th><th>Mô tả</th><th>Ngày thành lập</th><th class="text-center">Số nhân viên</th><th class="text-end">Thao tác</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var d in Model.PhongBans)
+                    {
+                        var pb = d.PhongBan;
+                        <tr>
+                            <td class="fw-semibold text-primary">@pb.MaHienThi</td>
+                            <td class="fw-semibold">@pb.TenPhongBan</td>
+                            <td class="text-muted">@pb.MoTa</td>
+                            <td>@pb.NgayThanhLap?.ToString("dd/MM/yyyy")</td>
+                            <td class="text-center"><span class="badge badge-soft-dark px-3">@d.SoNhanVien người</span></td>
+                            <td class="text-end text-nowrap">
+                                <button class="btn btn-sm btn-outline-primary btn-icon" title="Sửa" data-bs-toggle="modal" data-bs-target="#modalPhongBan"
+                                        data-id="@pb.MaPhongBan" data-ten="@pb.TenPhongBan" data-mota="@pb.MoTa"><i class="bi bi-pencil-square"></i></button>
+                                <button class="btn btn-sm btn-outline-danger btn-icon" title="Xóa"
+                                        data-confirm="Xóa phòng ban &quot;@pb.TenPhongBan&quot;?" data-action="@Url.Action("Delete", new { id = pb.MaPhongBan })"><i class="bi bi-trash3"></i></button>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                    <tfoot>
+                    <tr><td colspan="4">Tổng cộng</td><td class="text-center">@Model.PhongBans.Sum(x => x.SoNhanVien) người</td><td></td></tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 2: TÀI KHOẢN -->
+        <div class="tab-pane fade @(!tabPB ? "show active" : "")" id="tabTaiKhoan" role="tabpanel">
+            <div class="d-flex flex-wrap gap-3 px-3 py-3 small">
+                <span><span class="badge badge-soft-danger">Admin</span> Toàn quyền quản trị</span>
+                <span><span class="badge badge-soft-primary">Nhân viên</span> Chấm công, xem lịch sử &amp; bảng lương cá nhân</span>
+                <span class="text-muted ms-auto">Mật khẩu mặc định khi đặt lại: <b>123456</b></span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-ns">
+                    <thead>
+                    <tr><th>Tên đăng nhập</th><th>Nhân viên</th><th>Vai trò</th><th>Trạng thái</th><th>Ngày tạo</th><th class="text-end">Thao tác</th></tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var u in Model.TaiKhoans)
+                    {
+                        var laToi = u.UserID == Model.UserIdHienTai;
+                        <tr>
+                            <td><i class="bi bi-person-circle text-muted me-1"></i><span class="fw-semibold">@u.Username</span> @if (laToi) { <span class="badge badge-soft-secondary ms-1">Bạn</span> }</td>
+                            <td>@(u.NhanVien?.HoTen ?? "—")</td>
+                            <td>
+                                <form asp-controller="TaiKhoan" asp-action="DoiVaiTro" asp-route-id="@u.UserID" method="post" class="d-inline">
+                                    <select name="role" class="form-select form-select-sm w-auto d-inline-block @(u.Role == VaiTro.Admin ? "text-danger fw-semibold" : "text-primary")"
+                                            onchange="this.form.submit()" disabled="@laToi">
+                                        <option value="@VaiTro.Admin" selected="@(u.Role == VaiTro.Admin)">Admin</option>
+                                        <option value="@VaiTro.NhanVien" selected="@(u.Role == VaiTro.NhanVien)">Nhân viên</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>
+                                @if (u.TrangThai)
+                                {
+                                    <span class="badge badge-soft-success"><i class="bi bi-unlock-fill me-1"></i>Hoạt động</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-soft-danger"><i class="bi bi-lock-fill me-1"></i>Bị khóa</span>
+                                }
+                            </td>
+                            <td>@u.NgayTao.ToString("dd/MM/yyyy")</td>
+                            <td class="text-end text-nowrap">
+                                <form asp-controller="TaiKhoan" asp-action="KhoaMo" asp-route-id="@u.UserID" method="post" class="d-inline">
+                                    @if (u.TrangThai)
+                                    {
+                                        <button class="btn btn-sm btn-outline-danger" disabled="@laToi"><i class="bi bi-lock me-1"></i>Khóa</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-success"><i class="bi bi-unlock me-1"></i>Mở khóa</button>
+                                    }
+                                </form>
+                                <form asp-controller="TaiKhoan" asp-action="DatLaiMatKhau" asp-route-id="@u.UserID" method="post" class="d-inline">
+                                    <button class="btn btn-sm btn-outline-secondary" title="Đặt lại mật khẩu"><i class="bi bi-key"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thêm / sửa phòng ban -->
+<div class="modal fade" id="modalPhongBan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" class="modal-content border-0 shadow" id="formPhongBan">
+            @Html.AntiForgeryToken()
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="modalPhongBanTitle">Thêm phòng ban</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label required" for="tenPhongBan">Tên phòng ban</label>
+                    <input class="form-control" id="tenPhongBan" name="tenPhongBan" required maxlength="100" />
+                </div>
+                <div>
+                    <label class="form-label" for="moTa">Mô tả</label>
+                    <textarea class="form-control" id="moTa" name="moTa" rows="3" maxlength="255"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Lưu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<partial name="_ConfirmModal" />
+
+@section Scripts {
+    <script>
+        document.getElementById('modalPhongBan').addEventListener('show.bs.modal', function (e) {
+            const b = e.relatedTarget, id = b.dataset.id;
+            document.getElementById('modalPhongBanTitle').textContent = id ? 'Cập nhật phòng ban' : 'Thêm phòng ban';
+            document.getElementById('tenPhongBan').value = b.dataset.ten || '';
+            document.getElementById('moTa').value = b.dataset.mota || '';
+            document.getElementById('formPhongBan').action = id ? '@Url.Action("Edit")/' + id : '@Url.Action("Create")';
+        });
+    </script>
+}

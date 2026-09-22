@@ -1,0 +1,18 @@
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body text-center p-4">
+                    <div class="empty-icon bg-danger-subtle text-danger mx-auto mb-3"><i class="bi bi-trash3"></i></div>
+                    <h5 class="fw-bold">Xác nhận xóa</h5>
+                    <p class="confirm-text text-muted mb-0"></p>
+                </div>
+                <div class="modal-footer border-0 justify-content-center pb-4 pt-0">
+                    <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-danger px-4"><i class="bi bi-trash3 me-1"></i> Xóa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

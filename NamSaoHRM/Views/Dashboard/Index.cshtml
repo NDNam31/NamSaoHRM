@@ -1,0 +1,156 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Bảng điều khiển";
+    ViewData["Subtitle"] = "Tổng quan tình hình nhân sự và chấm công";
+    var chuaCheckIn = Math.Max(Model.TongNhanVien - Model.DaCheckInHomNay, 0);
+    var tyLe = Model.TongNhanVien == 0 ? 0 : Model.DaCheckInHomNay * 100 / Model.TongNhanVien;
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="stat-icon bg-blue-soft"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-label">Tổng nhân sự</div>
+                <div class="stat-value">@Model.TongNhanVien</div>
+                <div class="stat-note">@Model.SoPhongBan phòng ban</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="stat-icon bg-green-soft"><i class="bi bi-person-check-fill"></i></div>
+            <div>
+                <div class="stat-label">Đã đi làm hôm nay</div>
+                <div class="stat-value">@Model.DaCheckInHomNay</div>
+                <div class="stat-note">Tỷ lệ @tyLe% · @chuaCheckIn chưa check-in</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="stat-icon bg-red-soft"><i class="bi bi-alarm-fill"></i></div>
+            <div>
+                <div class="stat-label">Đi muộn hôm nay</div>
+                <div class="stat-value">@Model.DiMuonHomNay</div>
+                <div class="stat-note">Check-in sau 08:15</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card">
+            <div class="stat-icon bg-amber-soft"><i class="bi bi-calendar-x-fill"></i></div>
+            <div>
+                <div class="stat-label">Lượt đi muộn tháng @DateTime.Today.Month</div>
+                <div class="stat-value">@Model.DiMuonThangNay</div>
+                <div class="stat-note">@Model.TaiKhoanBiKhoa tài khoản đang bị khóa</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="card-title-ns"><i class="bi bi-bar-chart-fill text-primary me-1"></i> Số nhân sự theo phòng ban</h2>
+                <span class="badge badge-soft-primary">@Model.TongNhanVien nhân viên</span>
+            </div>
+            <div class="card-body"><div style="height:300px"><canvas id="chartPhongBan"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <h2 class="card-title-ns"><i class="bi bi-graph-up text-primary me-1"></i> Số lượt chấm công 2 tuần gần nhất</h2>
+            </div>
+            <div class="card-body"><div style="height:300px"><canvas id="chartNgay"></canvas></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title-ns"><i class="bi bi-clock-history text-primary me-1"></i> Chấm công hôm nay</h2>
+        <a asp-controller="ChamCong" asp-action="LichSu" class="btn btn-sm btn-outline-primary">Xem lịch sử</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-ns">
+            <thead>
+            <tr><th>Nhân viên</th><th>Phòng ban</th><th>Giờ vào</th><th>Giờ ra</th><th>Trạng thái</th></tr>
+            </thead>
+            <tbody>
+            @if (!Model.ChamCongHomNay.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted py-4">Chưa có nhân viên nào chấm công hôm nay.</td></tr>
+            }
+            @foreach (var c in Model.ChamCongHomNay)
+            {
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="avatar avatar-sm" style="background:@UiHelper.MauTheoTen(c.NhanVien?.HoTen)">@UiHelper.ChuCaiDau(c.NhanVien?.HoTen)</span>
+                            <div>
+                                <div class="fw-semibold">@c.NhanVien?.HoTen</div>
+                                <div class="small text-muted">@c.NhanVien?.MaHienThi</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>@c.NhanVien?.PhongBan?.TenPhongBan</td>
+                    <td class="fw-semibold">@c.GioCheckIn?.ToString("HH:mm")</td>
+                    <td>@(c.GioCheckOut?.ToString("HH:mm") ?? "—")</td>
+                    <td><span class="badge @UiHelper.LopTrangThai(c.TrangThai)">@c.TrangThai</span></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chart.js/chart.umd.min.js"></script>
+    <script>
+        Chart.defaults.font.family = '"Segoe UI", Roboto, Arial, sans-serif';
+        Chart.defaults.color = '#64748b';
+        new Chart(document.getElementById('chartPhongBan'), {
+            type: 'bar',
+            data: {
+                labels: @Json.Serialize(Model.NhanSuTheoPhongBan.Select(x => x.Ten)),
+                datasets: [{
+                    label: 'Số nhân viên',
+                    data: @Json.Serialize(Model.NhanSuTheoPhongBan.Select(x => x.SoNhanVien)),
+                    backgroundColor: '#1f5fa8', hoverBackgroundColor: '#0f2a4a',
+                    borderRadius: 6, maxBarThickness: 56
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef1f5' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+        new Chart(document.getElementById('chartNgay'), {
+            type: 'line',
+            data: {
+                labels: @Json.Serialize(Model.NhanNgay),
+                datasets: [{
+                    label: 'Lượt chấm công',
+                    data: @Json.Serialize(Model.DiLamTheoNgay),
+                    borderColor: '#1f5fa8', backgroundColor: 'rgba(31,95,168,.12)',
+                    fill: true, tension: .35, pointRadius: 3, pointBackgroundColor: '#1f5fa8'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef1f5' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    </script>
+}

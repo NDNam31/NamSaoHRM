@@ -1,0 +1,94 @@
+@model LichSuViewModel
+@{
+    ViewData["Title"] = "Lịch sử chấm công";
+    ViewData["Subtitle"] = $"Tháng {Model.Thang:00}/{Model.Nam}" + (Model.NhanVien != null ? $" · {Model.NhanVien.HoTen}" : "");
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            @if (Model.LaAdmin)
+            {
+                <div class="col-md-4">
+                    <label class="form-label">Nhân viên</label>
+                    <select name="maNV" class="form-select">
+                        @foreach (var n in Model.DanhSachNhanVien)
+                        {
+                            <option value="@n.MaNV" selected="@(n.MaNV == Model.MaNV)">@n.HoTen (@n.MaHienThi)</option>
+                        }
+                    </select>
+                </div>
+            }
+            <div class="col-6 col-md-2">
+                <label class="form-label">Tháng</label>
+                <select name="thang" class="form-select">
+                    @for (int t = 1; t <= 12; t++)
+                    {
+                        <option value="@t" selected="@(t == Model.Thang)">Tháng @t</option>
+                    }
+                </select>
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label">Năm</label>
+                <select name="nam" class="form-select">
+                    @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 2; y--)
+                    {
+                        <option value="@y" selected="@(y == Model.Nam)">@y</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-auto"><button class="btn btn-primary"><i class="bi bi-search me-1"></i> Xem</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-lg-3"><div class="card stat-card"><div class="stat-icon bg-blue-soft"><i class="bi bi-calendar-check"></i></div><div><div class="stat-label">Ngày công</div><div class="stat-value">@Model.TongNgayCong.ToString("0.#")</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card stat-card"><div class="stat-icon bg-green-soft"><i class="bi bi-hourglass-split"></i></div><div><div class="stat-label">Tổng giờ làm</div><div class="stat-value">@Model.TongGioLam.ToString("0.#")</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card stat-card"><div class="stat-icon bg-red-soft"><i class="bi bi-alarm"></i></div><div><div class="stat-label">Đi muộn</div><div class="stat-value text-danger">@Model.SoLanDiMuon</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card stat-card"><div class="stat-icon bg-amber-soft"><i class="bi bi-door-open"></i></div><div><div class="stat-label">Về sớm</div><div class="stat-value" style="color:#c2620a">@Model.SoLanVeSom</div></div></div></div>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-ns">
+            <thead>
+            <tr><th>Ngày</th><th>Giờ vào</th><th>Giờ ra</th><th class="text-end">Số giờ làm</th><th>Trạng thái</th><th>Ghi chú</th></tr>
+            </thead>
+            <tbody>
+            @if (!Model.Dong.Any())
+            {
+                <tr><td colspan="6" class="text-center text-muted py-4">Không có dữ liệu trong tháng đã chọn.</td></tr>
+            }
+            @foreach (var d in Model.Dong)
+            {
+                var c = d.ChamCong;
+                var lop = d.CuoiTuan ? "row-off"
+                    : c == null ? ""
+                    : QuyTacChamCong.LaDiMuon(c) ? "row-late"
+                    : QuyTacChamCong.LaVeSom(c) ? "row-early" : "";
+                <tr class="@lop">
+                    <td><span class="fw-semibold">@d.Ngay.ToString("dd/MM/yyyy")</span> <span class="small text-muted ms-1">@UiHelper.Thu(d.Ngay)</span></td>
+                    @if (d.CuoiTuan)
+                    {
+                        <td colspan="4">Nghỉ cuối tuần</td><td></td>
+                    }
+                    else if (c == null)
+                    {
+                        <td>—</td><td>—</td><td class="text-end">0</td>
+                        <td><span class="badge @(d.Ngay == DateTime.Today ? "badge-soft-secondary" : "badge-soft-dark")">@(d.Ngay == DateTime.Today ? "Chưa chấm công" : "Vắng mặt")</span></td><td></td>
+                    }
+                    else
+                    {
+                        <td class="fw-semibold">@c.GioCheckIn?.ToString("HH:mm")</td>
+                        <td>@(c.GioCheckOut?.ToString("HH:mm") ?? "—")</td>
+                        <td class="text-end">@(c.SoGioLam?.ToString("0.00") ?? "—")</td>
+                        <td><span class="badge @UiHelper.LopTrangThai(c.TrangThai)">@c.TrangThai</span></td>
+                        <td class="small">@c.GhiChu</td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

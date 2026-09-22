@@ -1,0 +1,104 @@
+@model NhanVienCreateViewModel
+@{
+    var laTaoMoi = Model.MaNV == 0;
+}
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2"></div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="form-section-title"><i class="bi bi-person-vcard text-primary"></i> Thông tin cá nhân</div>
+        <div class="mb-3">
+            <label asp-for="HoTen" class="form-label required"></label>
+            <input asp-for="HoTen" class="form-control" placeholder="VD: Nguyễn Văn An" />
+            <span asp-validation-for="HoTen"></span>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label asp-for="NgaySinh" class="form-label required"></label>
+                <input asp-for="NgaySinh" class="form-control" />
+                <span asp-validation-for="NgaySinh"></span>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="GioiTinh" class="form-label required"></label>
+                <select asp-for="GioiTinh" class="form-select">
+                    <option>Nam</option>
+                    <option>Nữ</option>
+                    <option>Khác</option>
+                </select>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label required"></label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                <input asp-for="Email" type="text" class="form-control" placeholder="ten.hd@@namsao.vn" />
+            </div>
+            <span asp-validation-for="Email"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="SoDienThoai" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                <input asp-for="SoDienThoai" class="form-control" placeholder="09xxxxxxxx" />
+            </div>
+            <span asp-validation-for="SoDienThoai"></span>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="form-section-title"><i class="bi bi-briefcase text-primary"></i> Thông tin công việc</div>
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label asp-for="MaPhongBan" class="form-label required"></label>
+                <select asp-for="MaPhongBan" asp-items="ViewBag.PhongBans" class="form-select">
+                    <option value="">— Chọn phòng ban —</option>
+                </select>
+                <span asp-validation-for="MaPhongBan"></span>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="ChucVu" class="form-label"></label>
+                <input asp-for="ChucVu" class="form-control" placeholder="VD: Nhân viên kinh doanh" />
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <label asp-for="LuongCoBan" class="form-label required"></label>
+                <div class="input-group">
+                    <input asp-for="LuongCoBan" type="number" step="100000" class="form-control" placeholder="10000000" />
+                    <span class="input-group-text">₫</span>
+                </div>
+                <span asp-validation-for="LuongCoBan"></span>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="NgayVaoLam" class="form-label required"></label>
+                <input asp-for="NgayVaoLam" class="form-control" />
+                <span asp-validation-for="NgayVaoLam"></span>
+            </div>
+        </div>
+
+        <div class="form-section-title mt-4"><i class="bi bi-shield-lock text-primary"></i> Tài khoản đăng nhập</div>
+        @if (laTaoMoi)
+        {
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <label asp-for="Username" class="form-label required"></label>
+                    <input asp-for="Username" class="form-control" placeholder="VD: an.nv" />
+                    <span asp-validation-for="Username"></span>
+                </div>
+                <div class="col-sm-6">
+                    <label asp-for="MatKhauMacDinh" class="form-label"></label>
+                    <input asp-for="MatKhauMacDinh" class="form-control" readonly />
+                    <div class="form-text">Nhân viên nên đổi mật khẩu sau lần đăng nhập đầu tiên.</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <input type="hidden" asp-for="Username" />
+            <div class="bg-light rounded-3 p-3 small">
+                <i class="bi bi-person-badge me-1"></i> Tên đăng nhập: <b>@(Model.Username ?? "(chưa có tài khoản)")</b><br />
+                <span class="text-muted">Quản lý khóa/mở khóa, đặt lại mật khẩu tại màn hình Phòng ban &amp; Tài khoản.</span>
+            </div>
+        }
+    </div>
+</div>

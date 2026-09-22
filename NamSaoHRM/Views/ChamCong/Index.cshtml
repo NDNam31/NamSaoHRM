@@ -1,0 +1,125 @@
+@model ChamCongIndexViewModel
+@{
+    ViewData["Title"] = "Chấm công hôm nay";
+    ViewData["Subtitle"] = "Ghi nhận giờ đến và giờ về theo thời gian máy chủ";
+    var cc = Model.HomNay;
+    var daVao = cc?.GioCheckIn != null;
+    var daRa = cc?.GioCheckOut != null;
+    var nv = Model.NhanVien;
+}
+
+@if (nv == null)
+{
+    <div class="card"><div class="card-body text-center py-5 text-muted">
+        <i class="bi bi-person-x fs-1 d-block mb-2"></i> Tài khoản này chưa gắn với hồ sơ nhân viên nên không thể chấm công.
+    </div></div>
+}
+else
+{
+<div class="row g-3">
+    <div class="col-xl-8">
+        <div class="card clock-card mb-3">
+            <div class="card-body p-4 p-md-5 text-center position-relative" style="z-index:1">
+                <div class="text-uppercase small opacity-75 mb-2" style="letter-spacing:.15em">Giờ hiện tại</div>
+                <div class="live-clock" id="liveClock">--:--:--</div>
+                <div class="mt-3 fs-5 opacity-75" id="liveDate"></div>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+                <form asp-action="CheckIn" method="post">
+                    <button type="submit" class="btn btn-punch btn-checkin w-100" disabled="@daVao">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        CHECK-IN
+                        <span class="small fw-normal opacity-75">@(daVao ? $"Đã check-in lúc {cc!.GioCheckIn:HH:mm}" : "Bắt đầu ngày làm việc")</span>
+                    </button>
+                </form>
+            </div>
+            <div class="col-sm-6">
+                <form asp-action="CheckOut" method="post">
+                    <button type="submit" class="btn btn-punch btn-checkout w-100" disabled="@(!daVao || daRa)">
+                        <i class="bi bi-box-arrow-right"></i>
+                        CHECK-OUT
+                        <span class="small fw-normal opacity-75">@(daRa ? $"Đã check-out lúc {cc!.GioCheckOut:HH:mm}" : daVao ? "Kết thúc ngày làm việc" : "Cần check-in trước")</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        @if (!daVao)
+        {
+            <div class="status-box bg-light border-secondary-subtle d-flex align-items-center gap-3">
+                <i class="bi bi-hourglass-split fs-2 text-secondary"></i>
+                <div><div class="fw-bold">Bạn chưa check-in hôm nay</div><div class="small text-muted">Check-in sau 08:15 sẽ được ghi nhận là <b class="text-danger">Đi muộn</b>.</div></div>
+            </div>
+        }
+        else
+        {
+            var vao = cc!.GioCheckIn!.Value;
+            var muon = QuyTacChamCong.LaDiMuon(vao);
+            <div class="status-box d-flex align-items-center gap-3 @(muon ? "bg-danger-subtle border-danger-subtle" : "bg-success-subtle border-success-subtle")">
+                <i class="bi @(muon ? "bi-alarm text-danger" : "bi-check-circle text-success") fs-2"></i>
+                <div class="flex-fill">
+                    <div class="fw-bold">Đã check-in lúc @vao.ToString("HH:mm") <span class="badge @UiHelper.LopTrangThai(QuyTacChamCong.TrangThaiKhiVao(vao)) ms-1">@QuyTacChamCong.TrangThaiKhiVao(vao)</span></div>
+                    <div class="small text-muted">
+                        @if (daRa)
+                        {
+                            <text>Check-out lúc @cc.GioCheckOut?.ToString("HH:mm") · Số giờ làm: <b>@cc.SoGioLam?.ToString("0.##") giờ</b> · Trạng thái: <b>@cc.TrangThai</b></text>
+                        }
+                        else
+                        {
+                            <text>Nhớ check-out khi kết thúc ngày làm việc. Check-out trước 17:00 sẽ được ghi nhận là <b class="text-orange">Về sớm</b>.</text>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card mb-3">
+            <div class="card-body d-flex align-items-center gap-3">
+                <span class="avatar avatar-lg" style="background:@UiHelper.MauTheoTen(nv.HoTen)">@UiHelper.ChuCaiDau(nv.HoTen)</span>
+                <div>
+                    <div class="fw-bold fs-5">@nv.HoTen</div>
+                    <div class="text-muted small">@nv.MaHienThi · @nv.ChucVu</div>
+                    <span class="badge badge-soft-primary mt-1">@nv.PhongBan?.TenPhongBan</span>
+                </div>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header"><h2 class="card-title-ns"><i class="bi bi-info-circle text-primary me-1"></i> Quy định giờ làm việc</h2></div>
+            <div class="card-body small">
+                <div class="timeline-item"><span>Giờ làm việc</span><b>08:00 – 17:00</b></div>
+                <div class="timeline-item"><span>Nghỉ trưa</span><b>12:00 – 13:00</b></div>
+                <div class="timeline-item"><span>Tính đi muộn</span><b class="text-danger">Sau 08:15</b></div>
+                <div class="timeline-item"><span>Tính về sớm</span><b class="text-orange">Trước 17:00</b></div>
+                <div class="timeline-item"><span>Phạt mỗi lần đi muộn</span><b>50.000 ₫</b></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="card-title-ns"><i class="bi bi-clock-history text-primary me-1"></i> Gần đây</h2>
+                <a asp-action="LichSu" class="small">Xem tất cả</a>
+            </div>
+            <div class="card-body py-2">
+                @foreach (var g in Model.GanDay)
+                {
+                    <div class="timeline-item">
+                        <div>
+                            <div class="fw-semibold small">@UiHelper.Thu(g.NgayChamCong), @g.NgayChamCong.ToString("dd/MM")</div>
+                            <div class="text-muted small">@g.GioCheckIn?.ToString("HH:mm") – @(g.GioCheckOut?.ToString("HH:mm") ?? "--:--")</div>
+                        </div>
+                        <span class="badge @UiHelper.LopTrangThai(g.TrangThai)">@g.TrangThai</span>
+                    </div>
+                }
+                @if (!Model.GanDay.Any())
+                {
+                    <div class="text-muted small py-2">Chưa có dữ liệu chấm công.</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+}

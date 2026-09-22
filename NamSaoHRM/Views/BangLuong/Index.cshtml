@@ -1,0 +1,107 @@
+@model BangLuongViewModel
+@{
+    ViewData["Title"] = Model.LaAdmin ? "Bảng lương" : "Bảng lương của tôi";
+    ViewData["Subtitle"] = $"Kỳ lương tháng {Model.Thang:00}/{Model.Nam}";
+}
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <form method="get" class="col-md d-flex flex-wrap gap-2 align-items-end">
+                <div>
+                    <label class="form-label">Tháng</label>
+                    <select name="thang" class="form-select">
+                        @for (int t = 1; t <= 12; t++)
+                        {
+                            <option value="@t" selected="@(t == Model.Thang)">Tháng @t</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Năm</label>
+                    <select name="nam" class="form-select">
+                        @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 2; y--)
+                        {
+                            <option value="@y" selected="@(y == Model.Nam)">@y</option>
+                        }
+                    </select>
+                </div>
+                <button class="btn btn-outline-primary"><i class="bi bi-search me-1"></i> Xem</button>
+            </form>
+            @if (Model.LaAdmin)
+            {
+                <div class="col-md-auto toolbar">
+                    <form asp-action="TongHop" method="post" class="d-inline">
+                        <input type="hidden" name="thang" value="@Model.Thang" />
+                        <input type="hidden" name="nam" value="@Model.Nam" />
+                        <button class="btn btn-primary"><i class="bi bi-calculator me-1"></i> Tổng hợp lương</button>
+                    </form>
+                    <a class="btn btn-success" asp-action="XuatExcel" asp-route-thang="@Model.Thang" asp-route-nam="@Model.Nam">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (Model.LaAdmin)
+{
+    <div class="row g-3 mb-3">
+        <div class="col-md-4"><div class="card stat-card"><div class="stat-icon bg-blue-soft"><i class="bi bi-people"></i></div><div><div class="stat-label">Số nhân viên</div><div class="stat-value">@Model.Items.Count</div></div></div></div>
+        <div class="col-md-4"><div class="card stat-card"><div class="stat-icon bg-red-soft"><i class="bi bi-dash-circle"></i></div><div><div class="stat-label">Tổng tiền phạt đi muộn</div><div class="stat-value fs-4">@UiHelper.Tien(Model.TongKhauTru)</div></div></div></div>
+        <div class="col-md-4"><div class="card stat-card"><div class="stat-icon bg-green-soft"><i class="bi bi-cash-coin"></i></div><div><div class="stat-label">Tổng quỹ lương thực lĩnh</div><div class="stat-value fs-4">@UiHelper.Tien(Model.TongThucLinh)</div></div></div></div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h2 class="card-title-ns"><i class="bi bi-table text-primary me-1"></i> Bảng lương tháng @Model.Thang.ToString("00")/@Model.Nam</h2>
+        <span class="small text-muted">Lương = Lương CB / 26 × Ngày công + Phụ cấp − Phạt (50.000 ₫/lần đi muộn)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-ns table-compact">
+            <thead>
+            <tr>
+                <th>Mã NV</th><th>Họ và tên</th><th>Phòng ban</th>
+                <th class="text-end">Lương cơ bản</th><th class="text-center">Ngày công</th><th class="text-center">Số lần đi muộn</th>
+                <th class="text-end">Phụ cấp</th><th class="text-end">Phạt</th><th class="text-end">Lương thực lĩnh</th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Items.Any())
+            {
+                <tr><td colspan="9" class="text-center text-muted py-5">
+                    <i class="bi bi-inbox fs-2 d-block mb-2"></i>Chưa có bảng lương cho kỳ này.
+                    @if (Model.LaAdmin) { <text>Nhấn <b>Tổng hợp lương</b> để tính.</text> }
+                </td></tr>
+            }
+            @foreach (var b in Model.Items)
+            {
+                <tr>
+                    <td class="fw-semibold text-primary">@b.NhanVien?.MaHienThi</td>
+                    <td class="fw-semibold text-nowrap">@b.NhanVien?.HoTen</td>
+                    <td>@b.NhanVien?.PhongBan?.TenPhongBan</td>
+                    <td class="text-end">@b.NhanVien?.LuongCoBan.ToString("N0")</td>
+                    <td class="text-center">@b.SoNgayCong.ToString("0.#")</td>
+                    <td class="text-center @(b.SoLanDiMuon > 0 ? "text-danger fw-semibold" : "")">@b.SoLanDiMuon</td>
+                    <td class="text-end">@b.PhuCap.ToString("N0")</td>
+                    <td class="text-end @(b.KhauTru > 0 ? "text-danger" : "")">@(b.KhauTru > 0 ? "-" + b.KhauTru.ToString("N0") : "0")</td>
+                    <td class="text-end fw-bold text-success">@b.TongLuong.ToString("N0")</td>
+                </tr>
+            }
+            </tbody>
+            @if (Model.Items.Count > 1)
+            {
+                <tfoot>
+                <tr>
+                    <td colspan="7">Tổng cộng</td>
+                    <td class="text-end text-danger">-@Model.TongKhauTru.ToString("N0")</td>
+                    <td class="text-end text-success">@Model.TongThucLinh.ToString("N0")</td>
+                </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+    <div class="card-footer bg-white small text-muted py-2">Đơn vị tính: VNĐ · Ngày lập: @(Model.Items.FirstOrDefault()?.NgayTao.ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
+</div>

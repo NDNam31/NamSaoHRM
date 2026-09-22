@@ -1,0 +1,109 @@
+@model NhanVienListViewModel
+@{
+    ViewData["Title"] = "Danh sách nhân viên";
+    ViewData["Subtitle"] = "Quản lý hồ sơ nhân sự toàn công ty";
+    var tu = Model.TotalItems == 0 ? 0 : (Model.Page - 1) * Model.PageSize + 1;
+    var den = Math.Min(Model.Page * Model.PageSize, Model.TotalItems);
+}
+
+<div class="card">
+    <div class="card-header">
+        <form method="get" asp-action="Index" class="row g-2 align-items-center">
+            <div class="col-md-5 col-lg-4">
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input name="q" value="@Model.Q" class="form-control" placeholder="Tìm theo họ tên hoặc email..." />
+                </div>
+            </div>
+            <div class="col-md-4 col-lg-3">
+                <select name="phongBan" class="form-select" onchange="this.form.submit()">
+                    <option value="">— Tất cả phòng ban —</option>
+                    @foreach (var pb in Model.PhongBans)
+                    {
+                        <option value="@pb.MaPhongBan" selected="@(Model.PhongBan == pb.MaPhongBan)">@pb.TenPhongBan</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-primary"><i class="bi bi-funnel me-1"></i> Lọc</button>
+            </div>
+            <div class="col-lg text-lg-end toolbar justify-content-lg-end">
+                <a class="btn btn-outline-success" asp-action="ExportExcel" asp-route-q="@Model.Q" asp-route-phongBan="@Model.PhongBan">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+                </a>
+                <a class="btn btn-primary" asp-action="Create"><i class="bi bi-person-plus me-1"></i> Thêm nhân viên</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-ns">
+            <thead>
+            <tr>
+                <th>Mã NV</th>
+                <th>Họ và tên</th>
+                <th>Phòng ban</th>
+                <th>Chức vụ</th>
+                <th>Email</th>
+                <th>Số điện thoại</th>
+                <th class="text-end">Thao tác</th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Items.Any())
+            {
+                <tr><td colspan="7" class="text-center text-muted py-5"><i class="bi bi-inbox fs-2 d-block mb-2"></i>Không tìm thấy nhân viên phù hợp.</td></tr>
+            }
+            @foreach (var nv in Model.Items)
+            {
+                <tr>
+                    <td class="fw-semibold text-primary">@nv.MaHienThi</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="avatar avatar-sm" style="background:@UiHelper.MauTheoTen(nv.HoTen)">@UiHelper.ChuCaiDau(nv.HoTen)</span>
+                            <div>
+                                <div class="fw-semibold">@nv.HoTen</div>
+                                <div class="small text-muted">@nv.GioiTinh · @nv.NgaySinh.ToString("dd/MM/yyyy")</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge badge-soft-primary">@nv.PhongBan?.TenPhongBan</span></td>
+                    <td>@nv.ChucVu</td>
+                    <td>@nv.Email</td>
+                    <td>@nv.SoDienThoai</td>
+                    <td class="text-end text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary btn-icon" asp-action="Edit" asp-route-id="@nv.MaNV" title="Sửa"><i class="bi bi-pencil-square"></i></a>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-icon" title="Xóa"
+                                data-confirm="Bạn có chắc muốn xóa nhân viên @nv.HoTen (@nv.MaHienThi)? Toàn bộ dữ liệu chấm công và tài khoản của nhân viên này cũng sẽ bị xóa."
+                                data-action="@Url.Action("Delete", new { id = nv.MaNV })">
+                            <i class="bi bi-trash3"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-footer bg-white d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+        <div class="small text-muted">Hiển thị <b>@tu–@den</b> trên tổng số <b>@Model.TotalItems</b> nhân viên</div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-q="@Model.Q" asp-route-phongBan="@Model.PhongBan" asp-route-page="@(Model.Page - 1)"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.Page ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-q="@Model.Q" asp-route-phongBan="@Model.PhongBan" asp-route-page="@i">@i</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Page >= Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-q="@Model.Q" asp-route-phongBan="@Model.PhongBan" asp-route-page="@(Model.Page + 1)"><i class="bi bi-chevron-right"></i></a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<partial name="_ConfirmModal" />
